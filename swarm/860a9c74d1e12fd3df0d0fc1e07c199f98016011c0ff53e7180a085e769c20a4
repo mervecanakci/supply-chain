@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.0;
+
+contract SensorContract {
+    // Sensör verileri
+    uint256 public temperature;
+    uint256 public humidity;
+    uint256 public pressure;
+    uint256 public vibration;
+    uint256 public lastVibrationTime;
+
+    // Sözleşme durumu
+    bool public isContractActive = true;
+
+    // Taşımacı firma ve ürün sahibi firma adresleri
+    address payable public transporter;
+    address payable public owner;
+
+    // Ödeme miktarı ve ödeme durumu
+    uint256 public paymentAmount = 2 ether;
+    bool public isPaymentMade = false;
+
+    constructor(address payable _transporter, address payable _owner) {
+        transporter = _transporter;
+        owner = _owner;
+    }
+
+    function setSensorValues(
+        uint256 _temperature,
+        uint256 _humidity,
+        uint256 _pressure,
+        uint256 _vibration
+    ) public {
+        // Sensör verilerini güncelle
+        temperature = _temperature;
+        humidity = _humidity;
+        pressure = _pressure;
+        vibration = _vibration;
+
+        // Sözleşme durumunu kontrol et
+        if (
+            temperature < 9 || 
+            temperature > 27 || 
+            pressure < 50000 || 
+            pressure > 150000 || 
+            humidity < 5 || 
+            humidity > 65) {
+            isContractActive = false;
+        }
+
+        // Titreşim kontrolü
+        if (vibration == 1) {
+            lastVibrationTime = block.timestamp;
+        }
+
+        if (block.timestamp - lastVibrationTime > 10 seconds) {
+            isContractActive = false;
+        }
+
+        // Ödeme yapılması gerekiyorsa, ödeme yap
+        if (!isContractActive && !isPaymentMade) {
+            payTransporter();
+        }
+    }
+
+    function payTransporter() private {
+        require(!isPaymentMade, "Payment has already been made");
+        owner.transfer(paymentAmount);
+        isPaymentMade = true;
+        isContractActive = false;
+    }
+}
+
+// @custom:dev-run-script
+function run() {
+    address payable transporter = payable(
+        address(0x013e74a66c05bE409c0935f6Ee1eA46f10A68f48
+)
+    ); // Taşımacı adresini buraya girin
+    address payable owner = payable(
+        address(0xd8BE39f4a5c78Afb74478343acEe21BF46502505)
+    ); // Sahip adresini buraya girin
+
+    new SensorContract(transporter, owner);
+}
